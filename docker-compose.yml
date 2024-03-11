@@ -1,0 +1,87 @@
+version: '3'
+
+services:
+  influxdb:
+    image: influxdb:alpine
+    container_name: nicos-influxdb
+    environment: 
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=nicos
+      - DOCKER_INFLUXDB_INIT_PASSWORD=password
+      - DOCKER_INFLUXDB_INIT_ORG=mlz
+      - DOCKER_INFLUXDB_INIT_BUCKET=nicos-cache
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=token_for_tests
+    networks:
+      - nicos_network
+    ports:
+      - "8086:8086"
+
+  zookeeper:
+    image: zookeeper:latest
+    container_name: nicos-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+      - nicos_network
+
+  kafka:
+    image: docker.io/bitnami/kafka:latest
+    container_name: nicos-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=nicos-zookeeper:2181
+    depends_on:
+      - zookeeper
+    networks:
+      - nicos_network
+
+  init-kafka:
+    image: docker.io/bitnami/kafka:latest
+    container_name: nicos-kafka-init
+    depends_on:
+      - kafka
+    networks:
+      - nicos_network
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      sleep 3
+      kafka-topics.sh --create --topic test-flatbuffers --bootstrap-server nicos-kafka:9092
+      kafka-topics.sh --create --topic test-flatbuffers-history --bootstrap-server nicos-kafka:9092
+      "
+
+  nicos:
+    build:
+      context: ./nicos
+      dockerfile: Dockerfile
+    image: nicos:latest
+    depends_on:
+      - influxdb
+      - kafka
+    container_name: nicos
+    networks:
+      - nicos_network
+    ports:
+      - "1301:1301"
+    environment: 
+      - INFLUXDB_URI=http://nicos-influxdb:8086
+      - INFLUXDB_TOKEN=token_for_tests
+      - KAFKA_URI=nicos-kafka:9092
+      - NICOS_TEST_ROOT=/home/nicos/test/
+    user: nicos
+#    volumes:
+#      - /optional/path/to/local/nicos:/home/nicos/nicos
+    entrypoint: [ '/bin/bash', '-c' ]
+    command: |
+        "
+        sleep 1
+        git config --global --add safe.directory /home/nicos/nicos
+        ./nicos/bin/nicos-keystore add influxdb --storagepw nicos --password $$INFLUXDB_TOKEN
+        entrypoint.sh
+        "
+
+networks:
+  nicos_network:
