@@ -3,22 +3,32 @@ FROM debian:latest
 WORKDIR /root
 
 # packages from official debian repos
-RUN apt update && \
+RUN apt update && apt upgrade -y && apt autoremove -y && \
     apt install -y git htop nano wget \
-    pyqt5-dev pyqt5-dev-tools python3-dev python3-pip python3-pytest \
-    python3-aiohttp python3-ciso8601 python3-keyring python3-pyqt5.qsci python3-keyrings.alt \
-    python3-mock python3-numpy python3-psutil python3-pyqt5.qtwebkit python3-rsa python3-scipy \
-    python3-tango python3-toml python3-zmq
+    pyqt5-dev pyqt5-dev-tools python3-dev python3-pip python3-pytest python3-pytest-repeat python3-pytest-rerunfailures python3-pytest-timeout \
+    python3-aiohttp python3-astropy python3-ciso8601 python3-docutils python3-h5py python3-html2text python3-keyring python3-keyrings.alt \
+    python3-ldap3 python3-mock python3-numpy python3-psutil python3-pyqt5.qsci python3-pyqt5.qtwebkit python3-requests python3-rsa \
+    python3-scipy python3-tango python3-toml python3-uncertainties python3-zmq
 
 # gr framework from their repo
-RUN wget -O- https://download.opensuse.org/repositories/science:/gr-framework/Debian_12/Release.key | gpg --dearmor | tee /usr/share/keyrings/gr-framework-archive-keyring.gpg > /dev/null && \
-    echo "deb [signed-by=/usr/share/keyrings/gr-framework-archive-keyring.gpg] https://download.opensuse.org/repositories/science:/gr-framework/Debian_12/ /" | tee /etc/apt/sources.list.d/gr-framework.list && \
+RUN echo 'deb [trusted=yes] https://download.opensuse.org/repositories/science:/gr-framework/Debian_12/ /' | tee /etc/apt/sources.list.d/science:gr-framework.list && \
     apt update && \
-    apt install -y gr python3-gr
+    apt install -y gr python3-gr --allow-unauthenticated
 
 # nicos-pyctl from source
 RUN git clone https://github.com/mlz-ictrl/nicos-pyctl.git && \
     cd nicos-pyctl && \
+    python3 setup.py install
+
+# nicos-quickyaml from source
+RUN git clone https://github.com/mlz-ictrl/nicos-quickyaml.git && \
+    cd nicos-quickyaml && \
+    python3 setup.py install
+
+# lttb
+RUN wget https://files.pythonhosted.org/packages/7c/88/696d67f73051e23b18b12702b8cf3da46224c824575eaa53c1963c7778ce/lttb-0.2.2.tar.gz && \
+    tar -xvf lttb-0.2.2.tar.gz && \
+    cd lttb-0.2.2 && \
     python3 setup.py install
 
 # influxdb 1.41
