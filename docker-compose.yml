@@ -17,7 +17,7 @@ services:
       - "8086:8086"
 
   zookeeper:
-    image: zookeeper:latest
+    image: zookeeper:3.8.3
     container_name: nicos-zookeeper
     ports:
       - "2181:2181"
@@ -27,7 +27,7 @@ services:
       - nicos_network
 
   kafka:
-    image: docker.io/bitnami/kafka:latest
+    image: docker.io/bitnami/kafka:3.6.1
     container_name: nicos-kafka
     ports:
       - "9092:9092"
@@ -39,7 +39,7 @@ services:
       - nicos_network
 
   init-kafka:
-    image: docker.io/bitnami/kafka:latest
+    image: docker.io/bitnami/kafka:3.6.1
     container_name: nicos-kafka-init
     depends_on:
       - kafka
