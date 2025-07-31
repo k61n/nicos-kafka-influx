@@ -49,7 +49,7 @@ services:
     build:
       context: ./nicos
       dockerfile: Dockerfile
-    image: nicos:latest
+    image: nicos:3.12.1
     container_name: nicos
     depends_on:
       - influxdb
